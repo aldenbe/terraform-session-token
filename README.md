@@ -35,7 +35,7 @@ terraform-session-token will prompt for details to be entered and update the AWS
 
     $ ./terraform-session-token.py -p profile-to-use -s terraform-strong-profile-name
     Terraform Session Token
-    Hit Enter on Role for Proposed
+    Hit Enter on Role for Default
 
     Role[arn:aws:iam::1234567890:role/my-secret-role]: 
     Enter MFA code for arn:aws:iam::0987654321:mfa/hulk: 
@@ -54,7 +54,6 @@ There are some arguments you can use when running terraform-session-token, which
       -d 3600               duration the token is valid (sec)
       -p profile            profile name for the Session Token
       -s terraform_session  session name to create for terraform in credentials file
-      -v                    disables SSL Verification
 
 Once you have authenticated you should have new profile listed within the AWS Crendentials file generally located under your home directory. This can then be called upon within Terraform's AWS Provider with 'profile'.
 

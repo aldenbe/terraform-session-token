@@ -35,22 +35,15 @@ ARGPARSER.add_argument(
 ARGPARSER.add_argument(
     "-s",
     type=str,
-    default="terraform_session",
+    default=None,
     metavar="terraform_session",
     help="profile name for the Session Token to produce",
-    required=False
-)
-ARGPARSER.add_argument(
-    "-v",
-    action='store_false',
-    help="disables SSL Verification",
     required=False
 )
 ARGS = ARGPARSER.parse_args()
 
 AWS_CONFIG_FILE = path.expanduser("~/.aws/config")
 AWS_CREDENTIALS_FILE = path.expanduser("~/.aws/credentials")
-AWS_CREDENTIALS_PROFILE = "[%s]" % ARGS.s
 
 
 def get_session_token(role):
@@ -144,15 +137,18 @@ def main():
     Prompts for a series of details required to generate a session token
     """
     try:
-        print("\nTerraform Session Token\nHit Enter on Role for Proposed\n")
+        print("\nTerraform Session Token\nHit Enter on Role for Default\n")
+        if not ARGS.s:
+            ARGS.s = 'tf-%s' % ARGS.p
         profile_configured_role = get_profile_configured_role(
             AWS_CONFIG_FILE, ARGS.p)
         exit
         entered_role = input("Role[%s]: " % profile_configured_role)
         selected_role = entered_role if entered_role else profile_configured_role
         session_token = get_session_token(selected_role)
+        tf_profile_name = ARGS.s
         write_token(AWS_CREDENTIALS_FILE,
-                    AWS_CREDENTIALS_PROFILE, session_token)
+                    tf_profile_name, session_token)
         print("Completed.")
     except KeyboardInterrupt:
         print("\nKeyboard Interrupted, Exiting")
