@@ -33,13 +33,15 @@ Clone the repository or download the 'terraform-session-token.py' onto your syst
 
 terraform-session-token will prompt for details to be entered and update the AWS CLI credential files with a profile that Terraform is able to use.
 
+    $ ./terraform-session-token.py -p profile-to-use -s terraform-strong-profile-name
     Terraform Session Token
-    Hit Enter on Role for Default
+    Hit Enter on Role for Proposed
 
-    Role[TerraformRole]: myCustomRole
-    Code: 121314
+    Role[arn:aws:iam::1234567890:role/my-secret-role]: 
+    Enter MFA code for arn:aws:iam::0987654321:mfa/hulk: 
 
-    Updating the profile [terraform_session] in the credentials file
+    Adding the profile [terraform-strong-profile-name] to the credentials file
+    Completed.
 
 There are some arguments you can use when running terraform-session-token, which can be viewed by parsing the '-h' or '--help' parameter.  Be aware that disabling SSL Verification if you have a 'MITM Proxy' is not recommended, and will warn about its usage.  It is better to use the CA Bundle instead, but this can be complicated.
 
@@ -50,7 +52,8 @@ There are some arguments you can use when running terraform-session-token, which
     optional arguments:
       -h, --help            show this help message and exit
       -d 3600               duration the token is valid (sec)
-      -p terraform_session  profile name for the Session Token
+      -p profile            profile name for the Session Token
+      -s terraform_session  session name to create for terraform in credentials file
       -v                    disables SSL Verification
 
 Once you have authenticated you should have new profile listed within the AWS Crendentials file generally located under your home directory. This can then be called upon within Terraform's AWS Provider with 'profile'.
@@ -68,6 +71,18 @@ Create a IAM Group with a policy to allow user accounts to assume the elevated a
 ### User Group Access Policy
 
 Least Privileged Principles apply. The 'terraform_session' tool uses IAM to collect some details to make the AssumeRole Call to STS.
+
+### Local config file configuration for automatic role discovery
+
+```config
+[profile main-profile]
+region = us-west-2
+output = json
+[profile profile-to-use]
+role_arn = arn:aws:iam::1234567890:role/my-secret-role
+source_profile = main-profile
+mfa_serial = arn:aws:iam::0987654321:mfa/hulk
+```
 
 #### AWS (JSON) Example
 ```json
@@ -218,7 +233,8 @@ Authors
 -------
 
 * **John Brandborg** - *Initial work* - [Linkedin](https://www.linkedin.com/in/johnbrandborg/)
+* **Dario Tislar** - *Refactored for usage with mfa configured profile* - [Linkedin](https://www.linkedin.com/in/dario-ti%C5%A1lar-443152144/)
 
 License
 -------
-This project is licensed under the MIT License - see the [LICENSE.md](https://github.com/johnbrandborg/terraform-session-token/blob/master/LICENSE) file for details
+This project is licensed under the GPL3 License - see the [LICENSE.md](https://raw.githubusercontent.com/dac73/terraform-session-token/master/LICENSE) file for details
