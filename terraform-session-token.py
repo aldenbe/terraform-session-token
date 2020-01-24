@@ -12,6 +12,7 @@ from shutil import copyfile
 from uuid import uuid4
 from boto3 import client, session
 from botocore.exceptions import ClientError, NoCredentialsError, ParamValidationError
+from colorama import Fore, Style
 
 ARGPARSER = argparse.ArgumentParser(
     description='Generates a Session Token using a Role and MFA Device'
@@ -46,7 +47,7 @@ AWS_CONFIG_FILE = path.expanduser("~/.aws/config")
 AWS_CREDENTIALS_FILE = path.expanduser("~/.aws/credentials")
 
 
-def get_session_token(role):
+def get_session_token(role, source_profile, mfa_serial, mfa_code):
     """
     Tries to get credentials via profile provided
 
@@ -54,12 +55,14 @@ def get_session_token(role):
     """
     try:
         global ARGS
-        new_session = session.Session(profile_name=ARGS.p, )
+        new_session = session.Session(profile_name=source_profile, )
         new_client = new_session.client('sts')
         credentials = new_client.assume_role(
             DurationSeconds=ARGS.d,
             RoleSessionName=ARGS.s,
-            RoleArn=role
+            RoleArn=role,
+            SerialNumber=mfa_serial,
+            TokenCode=mfa_code
         )
     except ClientError as err:
         print("\n%s, Exiting" % err, file=stderr)
@@ -94,13 +97,15 @@ def write_token(file, profile, token):
         session_token = "aws_session_token = " + \
             token['Credentials']['SessionToken']
         if profile in data_list:
-            print("\nUpdating the profile %s in the credentials file" % profile)
+            print("\nUpdating the profile %s%s%s in the credentials file" %
+                  (Fore.GREEN, profile, Style.RESET_ALL))
             profile_section = data_list.index(profile)
             data_list[profile_section + 1] = access_key
             data_list[profile_section + 2] = secret_key
             data_list[profile_section + 3] = session_token
         else:
-            print("\nAdding the profile %s to the credentials file" % profile)
+            print("\nAdding the profile %s%s%s to the credentials file" %
+                  (Fore.GREEN, profile, Style.RESET_ALL))
             data_list.append("")
             data_list.append(profile)
             data_list.append(access_key)
@@ -110,7 +115,7 @@ def write_token(file, profile, token):
         out_file.write("\n".join(data_list))
 
 
-def get_profile_configured_role(file, profile):
+def get_profile_details(file, profile):
     """
     Reads role arn from AWS AWS_CONFIG_FILE if exists
 
@@ -123,7 +128,10 @@ def get_profile_configured_role(file, profile):
     config = configparser.RawConfigParser()
     try:
         config.read('/home/dario/.aws/config')
-        return config.get('profile %s' % profile, 'role_arn')
+        role = config.get('profile %s' % profile, 'role_arn')
+        source_profile = config.get('profile %s' % profile, 'source_profile')
+        mfa_serial = config.get('profile %s' % profile, 'mfa_serial')
+        return role, source_profile, mfa_serial
     except configparser.NoSectionError as err:
         print('\nProfile %s does not exists in %s' % (profile, file))
         print("\n%s, Exiting" % err, file=stderr)
@@ -137,18 +145,27 @@ def main():
     Prompts for a series of details required to generate a session token
     """
     try:
-        print("\nTerraform Session Token\nHit Enter on Role for Default\n")
+        print("\nTerraform Session Token\n")
         if not ARGS.s:
             ARGS.s = 'tf-%s' % ARGS.p
-        profile_configured_role = get_profile_configured_role(
+        profile_configured_role, source_profile, mfa_serial = get_profile_details(
             AWS_CONFIG_FILE, ARGS.p)
         exit
-        entered_role = input("Role[%s]: " % profile_configured_role)
+        entered_role = input("Role [%s%s%s] (enter for default): " % (
+            Fore.YELLOW, profile_configured_role, Style.RESET_ALL))
         selected_role = entered_role if entered_role else profile_configured_role
-        session_token = get_session_token(selected_role)
+        if selected_role == None:
+            print("Role not selected, exiting")
+            sysexit(1)
+        print('Selected role is: %s%s%s' %
+              (Fore.GREEN, selected_role, Style.RESET_ALL))
+        mfa_code = input("\nMFA code [%s%s%s]: " %
+                         (Fore.YELLOW, mfa_serial, Style.RESET_ALL))
+        session_token = get_session_token(
+            selected_role, source_profile, mfa_serial, mfa_code)
         tf_profile_name = ARGS.s
         write_token(AWS_CREDENTIALS_FILE,
-                    tf_profile_name, session_token)
+                    '[%s]' % tf_profile_name, session_token)
         print("Completed.")
     except KeyboardInterrupt:
         print("\nKeyboard Interrupted, Exiting")
