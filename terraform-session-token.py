@@ -151,8 +151,10 @@ def main():
         profile_configured_role, source_profile, mfa_serial = get_profile_details(
             AWS_CONFIG_FILE, ARGS.p)
         exit
-        entered_role = input("Role [%s%s%s] (enter for default): " % (
-            Fore.YELLOW, profile_configured_role, Style.RESET_ALL))
+        entered_role = None
+        if profile_configured_role is None:
+            entered_role = input("Role [%s%s%s] (enter for default): " % (
+                Fore.YELLOW, profile_configured_role, Style.RESET_ALL))
         selected_role = entered_role if entered_role else profile_configured_role
         if selected_role == None:
             print("Role not selected, exiting")
