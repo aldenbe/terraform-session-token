@@ -8,6 +8,7 @@ import argparse
 import configparser
 from sys import stderr, exit as sysexit
 from os import path
+import os
 from shutil import copyfile
 from uuid import uuid4
 from boto3 import client, session
@@ -168,6 +169,7 @@ def main():
         tf_profile_name = ARGS.s
         write_token(AWS_CREDENTIALS_FILE,
                     '[%s]' % tf_profile_name, session_token)
+        os.system('sleep %s && notify-send -i emblem-urgent "AWS profile [%s] expires in 5 minutes" &' % ((ARGS.d-300), tf_profile_name))
         print("Completed.")
     except KeyboardInterrupt:
         print("\nKeyboard Interrupted, Exiting")
