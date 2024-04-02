@@ -116,7 +116,7 @@ def write_token(file, profile, token):
         out_file.write("\n".join(data_list))
 
 
-def get_profile_details(file, profile):
+def get_profile_details(config_file, profile):
     """
     Reads role arn from AWS AWS_CONFIG_FILE if exists
 
@@ -128,7 +128,7 @@ def get_profile_details(file, profile):
     """
     config = configparser.RawConfigParser()
     try:
-        config.read('/home/dario/.aws/config')
+        config.read(config_file)
         role = config.get('profile %s' % profile, 'role_arn')
         source_profile = config.get('profile %s' % profile, 'source_profile')
         mfa_serial = config.get('profile %s' % profile, 'mfa_serial')
@@ -169,6 +169,7 @@ def main():
         tf_profile_name = ARGS.s
         write_token(AWS_CREDENTIALS_FILE,
                     '[%s]' % tf_profile_name, session_token)
+#       TODO: windows equivalent
         os.system('sleep %s && notify-send -i emblem-urgent "AWS profile [%s] expires in 5 minutes" &' % ((ARGS.d-300), tf_profile_name))
         print("Completed.")
     except KeyboardInterrupt:
